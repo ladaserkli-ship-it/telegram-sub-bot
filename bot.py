@@ -43,10 +43,14 @@ async def delete_after_delay(chat_id: int, message_id: int, delay: int):
 @dp.message(F.chat.type.in_({"group", "supergroup"}), F.pinned_message)
 async def unpin_channel_posts(message: types.Message):
     try:
+        await bot.unpin_chat_message(
+            chat_id=message.chat.id,
+            message_id=message.pinned_message.message_id
+        )
         await message.delete()
-        logger.info("Удалено системное сообщение о закреплении")
+        logger.info("Сообщение откреплено и системное уведомление удалено")
     except Exception as e:
-        logger.error(f"Не удалось удалить закрепление: {e}")
+        logger.error(f"Не удалось открепить сообщение: {e}")
 
 
 @dp.message(F.chat.type.in_({"group", "supergroup"}))
