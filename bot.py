@@ -9,6 +9,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "0"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK", "")
 WARNING_DELETE_DELAY = 60
+# ID группового чата (тот же формат, что CHANNEL_ID, но для чата)
+GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID", "0"))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,25 +40,47 @@ async def delete_after_delay(message: types.Message, delay: int):
         pass
 
 
-# --- ОТКРЕП: ловим ВСЕ сообщения и проверяем pinned_message вручную ---
+# --- Фоновая задача: каждые 5 секунд проверяем и откреляем ---
+async def unpin_loop():
+    while True:
+        try:
+            chat = await bot.get_chat(GROUP_CHAT_ID)
+            if chat.pinned_message:
+                # Если закреплённое сообщение пришло из канала — откреляем
+                pinned = chat.pinned_message
+                is_from_channel = (
+                    pinned.sender_chat and pinned.sender_chat.id == CHANNEL_ID
+                ) or pinned.is_automatic_forward
+                
+                if is_from_channel:
+                    await bot.unpin_chat_message(
+                        chat_id=GROUP_CHAT_ID,
+                        message_id=pinned.message_id
+                    )
+                    logger.info(f"Откреплено сообщение {pinned.message_id} из канала")
+        except Exception as e:
+            logger.error(f"Ошибка в unpin_loop: {e}")
+        await asyncio.sleep(5)
+
+
+# --- Обработчик системных уведомлений о закреплении ---
 @dp.message(F.chat.type.in_({"group", "supergroup"}))
 async def handle_all_group_messages(message: types.Message):
-    # 1) Если это системное сообщение о закреплении
+    # 1) Системное сообщение о закреплении — удаляем уведомление
     if message.content_type == ContentType.PINNED_MESSAGE:
-        logger.info(f"Обнаружено закрепление, message_id закреплённого: {message.pinned_message.message_id}")
+        logger.info(f"Обнаружено закрепление: {message.pinned_message.message_id}")
         try:
             await bot.unpin_chat_message(
                 chat_id=message.chat.id,
                 message_id=message.pinned_message.message_id
             )
-            logger.info("Сообщение откреплено")
+            logger.info("Откреплено через обработчик")
         except Exception as e:
             logger.error(f"Не удалось открепить: {e}")
         try:
             await message.delete()
-            logger.info("Системное уведомление о закреплении удалено")
-        except Exception as e:
-            logger.error(f"Не удалось удалить уведомление: {e}")
+        except Exception:
+            pass
         return
 
     # 2) Пропускаем ботов
@@ -103,6 +127,9 @@ async def handle_all_group_messages(message: types.Message):
 async def main():
     logger.info("Бот запущен!")
     await bot.delete_webhook(drop_pending_updates=True)
+    # Запускаем фоновую проверку откреления
+    asyncio.create_task(unpin_loop())
+    logger.info("Фоновая задача unpin_loop запущена")
     await dp.start_polling(bot)
 
 
