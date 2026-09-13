@@ -29,6 +29,8 @@ dp = Dispatcher()
 chat_is_closed = False
 # ID сообщения "Спокойной ночи" для удаления
 goodnight_message_id = None
+# Антифлуд: запоминаем, кому уже отправлено предупреждение
+warned_users = {}
 
 
 def is_night_time() -> bool:
@@ -194,7 +196,7 @@ async def handle_all_group_messages(message: types.Message):
     if message.sender_chat and message.sender_chat.id == CHANNEL_ID:
         return
 
-    # 5) Проверка подписки
+    # 5) Проверка подписки с антифлудом
     if message.from_user:
         subscribed = await is_subscribed(message.from_user.id)
         if not subscribed:
@@ -203,6 +205,13 @@ async def handle_all_group_messages(message: types.Message):
                 logger.info(f"Удалено сообщение от {message.from_user.id} (не подписан)")
             except Exception as e:
                 logger.error(f"Не удалось удалить сообщение: {e}")
+
+            # Антифлуд: не спамим предупреждениями
+            now = datetime.now(MSK).timestamp()
+            last_warned = warned_users.get(message.from_user.id, 0)
+            if now - last_warned < WARNING_DELETE_DELAY:
+                return
+            warned_users[message.from_user.id] = now
 
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
