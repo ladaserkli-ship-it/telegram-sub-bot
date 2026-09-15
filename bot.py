@@ -32,6 +32,42 @@ goodnight_message_id = None
 # Антифлуд: запоминаем, кому уже отправлено предупреждение
 warned_users = {}
 
+# --- Права участников: ночной режим (всё закрыто) ---
+NIGHT_PERMISSIONS = ChatPermissions(
+    can_send_messages=False,
+    can_send_audios=False,
+    can_send_documents=False,
+    can_send_photos=False,
+    can_send_videos=False,
+    can_send_video_notes=False,
+    can_send_voice_notes=False,
+    can_send_polls=False,
+    can_send_other_messages=False,
+    can_add_web_page_previews=False,
+    can_invite_users=True,
+    can_pin_messages=False,
+    can_manage_topics=False,
+    can_change_info=False,
+)
+
+# --- Права участников: дневной режим (твои настройки) ---
+DAY_PERMISSIONS = ChatPermissions(
+    can_send_messages=True,
+    can_send_audios=False,
+    can_send_documents=False,
+    can_send_photos=True,
+    can_send_videos=True,
+    can_send_video_notes=False,
+    can_send_voice_notes=False,
+    can_send_polls=False,
+    can_send_other_messages=False,
+    can_add_web_page_previews=False,
+    can_invite_users=True,
+    can_pin_messages=False,
+    can_manage_topics=False,
+    can_change_info=False,
+)
+
 
 def is_night_time() -> bool:
     """Проверяет, попадает ли текущее время в закрытый период (23:00 - 09:00 МСК)"""
@@ -45,18 +81,7 @@ async def close_chat():
     try:
         await bot.set_chat_permissions(
             chat_id=GROUP_CHAT_ID,
-            permissions=ChatPermissions(
-                can_send_messages=False,
-                can_send_audios=False,
-                can_send_documents=False,
-                can_send_photos=False,
-                can_send_videos=False,
-                can_send_video_notes=False,
-                can_send_voice_notes=False,
-                can_send_polls=False,
-                can_send_other_messages=False,
-                can_add_web_page_previews=False,
-            ),
+            permissions=NIGHT_PERMISSIONS,
         )
         chat_is_closed = True
         logger.info("Чат закрыт")
@@ -77,18 +102,7 @@ async def open_chat():
     try:
         await bot.set_chat_permissions(
             chat_id=GROUP_CHAT_ID,
-            permissions=ChatPermissions(
-                can_send_messages=True,
-                can_send_audios=True,
-                can_send_documents=True,
-                can_send_photos=True,
-                can_send_videos=True,
-                can_send_video_notes=True,
-                can_send_voice_notes=True,
-                can_send_polls=True,
-                can_send_other_messages=True,
-                can_add_web_page_previews=True,
-            ),
+            permissions=DAY_PERMISSIONS,
         )
         chat_is_closed = False
         logger.info("Чат открыт")
