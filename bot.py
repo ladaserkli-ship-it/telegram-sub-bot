@@ -32,7 +32,7 @@ goodnight_message_id = None
 # Антифлуд: запоминаем, кому уже отправлено предупреждение
 warned_users = {}
 
-# --- Права участников: ночной режим (всё закрыто) ---
+# --- Права участников: ночной режим (всё закрыто, реакции открыты) ---
 NIGHT_PERMISSIONS = ChatPermissions(
     can_send_messages=False,
     can_send_audios=False,
@@ -44,6 +44,7 @@ NIGHT_PERMISSIONS = ChatPermissions(
     can_send_polls=False,
     can_send_other_messages=False,
     can_add_web_page_previews=False,
+    can_react_to_messages=True,
     can_invite_users=True,
     can_pin_messages=False,
     can_manage_topics=False,
@@ -62,6 +63,7 @@ DAY_PERMISSIONS = ChatPermissions(
     can_send_polls=False,
     can_send_other_messages=False,
     can_add_web_page_previews=False,
+    can_react_to_messages=True,
     can_invite_users=True,
     can_pin_messages=False,
     can_manage_topics=False,
